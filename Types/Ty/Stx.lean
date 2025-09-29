@@ -1,7 +1,7 @@
-inductive Ty : Nat → Type
-  | fn {n} : Ty n → Ty n → Ty n
-  | id {n} : Fin n → Ty n
-  | fa {n} : Ty n.succ → Ty n
+inductive Ty : Type
+  | fn : Ty → Ty → Ty
+  | id : Nat → Ty
+  | fa : Ty → Ty
 
 declare_syntax_cat stx_ty
 
@@ -12,7 +12,7 @@ syntax "(" stx_ty ")" : stx_ty
 syntax stx_ty "→" stx_ty : stx_ty
 syntax "Λ" ident* "." stx_ty : stx_ty
 
-syntax "[t" num ident* "|" stx_ty "]" : term
+syntax "[t!" num ident* "|" stx_ty "]" : term
 syntax "[t|" stx_ty "]" : term
 
 open Lean in
@@ -20,18 +20,18 @@ instance : HAdd NumLit Nat NumLit where
   hAdd x n := Syntax.mkNumLit s!"{x.getNat + n}"
 
 macro_rules
-  | `([t $_t | $v:num ]) => `(Ty.id $v)
-  | `([t $_t | $v:ident ]) => `($v)
-  | `([t $_t | !($t) ]) => `($t)
-  | `([t $_t | $a → $b ]) => `(Ty.fn [t $_t | $a] [t $_t | $b])
-  | `([t $t $h $ids*| $v:ident ]) =>
+  | `([t! $_t | $v:num ]) => `(Ty.id $v)
+  | `([t! $_t | $v:ident ]) => `($v)
+  | `([t! $_t | !($t) ]) => `($t)
+  | `([t! $_t | $a → $b ]) => `(Ty.fn [t! $_t | $a] [t! $_t | $b])
+  | `([t! $t $h $ids*| $v:ident ]) =>
     if h.getId = v.getId then `(Ty.id $t)
-    else `([t $(t + 1) $ids* | $v:ident])
-  | `([t $t $ids*| ($v) ]) => `(([t $t $ids* |$v]))
-  | `([t $t $ids*| Λ. $v]) => `(Ty.fa ([t $(t + 1) $ids*|$v]))
-  | `([t $t $ids*| Λ $i. $v]) => `(Ty.fa ([t $t $i $ids*|$v]))
-  | `([t $t $ids*| Λ $i $is*. $v]) => `(Ty.fa ([t $t $i $ids*| Λ $is*. $v]))
-  | `([t| $v]) => `([t 0 | $v])
+    else `([t! $(t + 1) $ids* | $v:ident])
+  | `([t! $t $ids*| ($v) ]) => `(([t! $t $ids* |$v]))
+  | `([t! $t $ids*| Λ. $v]) => `(Ty.fa ([t! $(t + 1) $ids*|$v]))
+  | `([t! $t $ids*| Λ $i. $v]) => `(Ty.fa ([t! $t $i $ids*|$v]))
+  | `([t! $t $ids*| Λ $i $is*. $v]) => `(Ty.fa ([t! $t $i $ids*| Λ $is*. $v]))
+  | `([t| $v]) => `([t! 0 | $v])
 
 open Lean in
 def Ty.uex_inner : Syntax.Term → PrettyPrinter.UnexpandM (TSyntax `stx_ty)
