@@ -1,5 +1,7 @@
 import Types.Ty.Stx
 
+namespace Ty
+
 -- RefSet predicate for types
 inductive RefSet : Ty → Nat → Prop
   | fnL {a b idx} : RefSet a idx → RefSet (.fn a b) idx
@@ -31,7 +33,7 @@ theorem RefSet_id {idx jdx} : RefSet (.id idx) jdx ↔ idx = jdx := by
   · rw [h]
     exact .id
 
-theorem RefSet_fa {a b idx} : RefSet (.fa (.fn a b)) idx ↔ RefSet (.fa a) idx ∨ RefSet (.fa b) idx := by
+theorem RefSet_dist {a b idx} : RefSet (.fa (.fn a b)) idx ↔ RefSet (.fa a) idx ∨ RefSet (.fa b) idx := by
   constructor
   <;> intro h
   <;> simp only [RefSet_fa, RefSet_fn] at h ⊢

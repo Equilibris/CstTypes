@@ -1,3 +1,5 @@
+import Types.Utils
+
 inductive Ty : Type
   | fn : Ty → Ty → Ty
   | id : Nat → Ty
@@ -14,10 +16,6 @@ syntax "Λ" ident* "." stx_ty : stx_ty
 
 syntax "[t!" num ident* "|" stx_ty "]" : term
 syntax "[t|" stx_ty "]" : term
-
-open Lean in
-instance : HAdd NumLit Nat NumLit where
-  hAdd x n := Syntax.mkNumLit s!"{x.getNat + n}"
 
 macro_rules
   | `([t! $_t | $v:num ]) => `(Ty.id $v)
