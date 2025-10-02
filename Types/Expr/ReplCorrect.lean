@@ -46,8 +46,7 @@ theorem bvarShift_RefSet_general {body idx skip shift} (h : RefSet body (idx + s
   match body with
   | .id n => by
     simp at h
-    rw [h]
-    clear h
+    subst h
     simp [bvarShift]
     split <;> omega
   | .lam ty body => by
@@ -100,5 +99,113 @@ theorem bvarShift_RefSet_rev
     (h : RefSet (body.bvarShift shift 0) (idx + shift))
     : RefSet body idx :=
   bvarShift_RefSet_general_rev 0 h
+
+theorem bvarShift_RefSet_general_rev' {body idx shift}
+    skip
+    (hlt : skip + shift ≤ idx)
+    (h : RefSet (body.bvarShift shift skip) idx)
+    : RefSet body (idx - shift) := by
+  obtain ⟨idx', rfl⟩ := Nat.exists_eq_add_of_le hlt
+  rw [show skip + shift + idx' = idx' + shift + skip by omega] at h
+  rw [show (skip + shift + idx' - shift) = idx' + skip by omega]
+  exact bvarShift_RefSet_general_rev skip h
+
+theorem bvarShift_RefSet_general_lt_rev {body idx shift}
+    skip
+    (hlt : idx < skip + shift)
+    (h : RefSet (body.bvarShift shift skip) idx)
+    : RefSet body idx :=
+  match body with
+  | .id n => by
+    simp_all only [bvarShift, RefSet_id]
+    split at h <;> omega
+  | .lam ty body => by
+    simp only [bvarShift, Nat.succ_eq_add_one, RefSet_lam] at h ⊢
+    exact bvarShift_RefSet_general_lt_rev (skip + 1) (by omega) h
+  | .tlam body => by
+    simp only [bvarShift, Nat.succ_eq_add_one, RefSet_tlam] at h ⊢
+    exact bvarShift_RefSet_general_lt_rev (skip + 1) (by omega) h
+  | .app a b => by
+    simp only [bvarShift, RefSet_app] at h ⊢
+    cases h
+    next h => exact .inl $ bvarShift_RefSet_general_lt_rev skip hlt h
+    next h => exact .inr $ bvarShift_RefSet_general_lt_rev skip hlt h
+  | .tapp expr ty => by
+    simp only [bvarShift, RefSet_tapp] at h ⊢
+    exact bvarShift_RefSet_general_lt_rev skip hlt h
+
+theorem bvarShift_range
+    {shift skip n}
+    : {x : _}
+    → RefSet (bvarShift shift skip x) n
+    → (n < skip ∨ shift + skip ≤ n)
+  | .id x, .id => by grind
+  | .lam ty body, .lam h => by
+    cases bvarShift_range (skip := skip.succ) h
+    <;> grind
+  | .tlam body, .tlam h => by
+    cases bvarShift_range (skip := skip.succ) h
+    <;> grind
+  | .app a b, .appL h | .app a b, .appR h => by
+    have := bvarShift_range h
+    grind
+  | .tapp expr ty, .tappL h => by
+    have := bvarShift_range h
+    grind
+
+theorem replace_RefSet_general_lt_rev
+    {repl : Expr}
+    {idx jdx}
+    (hlt : idx < jdx)
+    : {body : Expr} → RefSet (body.replace jdx repl) idx
+    → RefSet body idx
+  | .id x, h => by
+    simp only [replace, replace.bvar, Nat.pred_eq_sub_one] at h
+    split at h
+    <;> simp_all only [Std.LawfulEqCmp.compare_eq_iff_eq, RefSet_id, Nat.compare_eq_gt]
+    · have := bvarShift_range h
+      omega
+    · omega
+  | .lam ty body, .lam h => RefSet_lam.mpr
+    <| replace_RefSet_general_lt_rev (Nat.add_lt_add_right hlt 1) h
+  | .tlam body, .tlam h => RefSet_tlam.mpr
+    <| replace_RefSet_general_lt_rev (Nat.add_lt_add_right hlt 1) h
+  | .app a b, .appL h => RefSet_app.mpr
+    <| .inl <| replace_RefSet_general_lt_rev hlt h
+  | .app a b, .appR h => RefSet_app.mpr
+    <| .inr <| replace_RefSet_general_lt_rev hlt h
+  | .tapp expr ty, .tappL h => RefSet_tapp.mpr
+    <| replace_RefSet_general_lt_rev hlt h
+
+theorem replace_RefSet_general_ge_rev
+    {repl : Expr}
+    {idx jdx}
+    (hlt : jdx ≤ idx)
+    : {body : Expr} → RefSet (body.replace jdx repl) idx
+    → (RefSet body idx.succ ∨ RefSet repl (idx - jdx))
+  | .id x, h => by
+    simp only [replace, replace.bvar, Nat.pred_eq_sub_one] at h
+    split at h
+    <;> simp_all only [Std.LawfulEqCmp.compare_eq_iff_eq, RefSet_id,
+      Nat.compare_eq_gt, Nat.compare_eq_lt]
+    any_goals grind only
+    exact .inr <| bvarShift_RefSet_general_rev' _ (by omega) h
+  | .lam ty body, .lam h => by
+    simp only [Nat.succ_eq_add_one, RefSet_lam] at *
+    have := replace_RefSet_general_ge_rev (Nat.add_le_add_right hlt 1) h
+    simp_all only [Nat.reduceSubDiff]
+  | .tlam body, .tlam h => by
+    simp only [Nat.succ_eq_add_one, RefSet_tlam] at *
+    have := replace_RefSet_general_ge_rev (Nat.add_le_add_right hlt 1) h
+    simp_all only [Nat.reduceSubDiff]
+  | .app a b, .appL h
+  | .app a b, .appR h => by
+    simp only [Nat.succ_eq_add_one, RefSet_app]
+    cases replace_RefSet_general_ge_rev hlt h
+    <;> simp_all
+  | .tapp expr ty, .tappL h => by
+    simp only [Nat.succ_eq_add_one, RefSet_tapp]
+    cases replace_RefSet_general_ge_rev hlt h
+    <;> simp_all
 
 end Expr
