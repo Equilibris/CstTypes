@@ -4,7 +4,7 @@ import Types.Ty.E
 namespace Expr
 
 @[grind]
-inductive Typed : (n : Nat) → List (Ty.E n) → Expr → Ty.E n → Type
+inductive Typed : (n : Nat) → List (Ty.E n) → Expr → Ty.E n → Prop
   | id {n Γ} (i : Fin Γ.length) : Typed n Γ (.id i.val) Γ[i]
   | app {n Γ a b arg ret}
     : Typed n Γ a (.fn arg ret)
@@ -21,8 +21,9 @@ inductive Typed : (n : Nat) → List (Ty.E n) → Expr → Ty.E n → Type
     → Typed n Γ (.tlam arg) (.fa o)
 
 @[simp]
-def Typed_id {n Γ idx t} : Typed n Γ (.id idx) t → (p : _) ×' t = Γ[Fin.mk idx p]
-  | .id i => ⟨i.isLt, rfl⟩
+def Typed_id {n Γ idx t} : Typed n Γ (.id idx) t ↔ ∃ (p : _) , t = Γ[Fin.mk idx p] := by
+  constructor
+  <;> intro x <;> cases x <;> grind
 
 theorem Typed.allEq {n Γ}
     : {t₁ t₂ e : _}

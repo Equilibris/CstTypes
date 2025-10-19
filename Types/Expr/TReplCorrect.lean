@@ -1,5 +1,6 @@
 import Types.Expr.TRepl
 import Types.Expr.TRefSet
+import Types.Expr.RefSet
 import Types.Ty.ReplCorrect
 
 namespace Expr
@@ -214,5 +215,28 @@ theorem tReplace_TRefSet_general_ge_rev
     simp only [Nat.succ_eq_add_one, TRefSet_tapp]
     cases Ty.replace_RefSet_general_ge_rev hlt h
     <;> simp_all
+
+theorem tBvarShift_RefSet
+    {shift skip n}
+    : {x : _}
+    → RefSet (tBvarShift shift skip x) n
+    ↔ RefSet x n
+  | .id _ => by simp [tBvarShift]
+  | .tlam _ => by
+    simp only [tBvarShift, Nat.succ_eq_add_one, RefSet_tlam]
+    exact tBvarShift_RefSet
+  | .tapp _ _ => by 
+    simp only [tBvarShift, RefSet_tapp]
+    exact tBvarShift_RefSet
+  | .lam _ _ => by
+    simp only [tBvarShift, RefSet_lam]
+    exact tBvarShift_RefSet
+  | .app _ _ => by
+    simp only [tBvarShift, RefSet_app]
+    constructor
+    <;> rintro (h|h)
+    any_goals (have := tBvarShift_RefSet.mp h; simp_all)
+    all_goals have := (tBvarShift_RefSet (shift := shift) (skip := skip)).mpr h
+    all_goals simp_all
 
 end Expr

@@ -1,4 +1,5 @@
 import Types.Expr.Repl
+import Types.Expr.TReplCorrect
 import Types.Expr.RefSet
 
 namespace Expr
@@ -20,7 +21,7 @@ example : bvarShift k 0 (.id n) = (.id (n + k))                                :
 example : bvarShift k (.succ n) (.id 0) = (.id 0)                              := by simp [bvarShift]
 example : bvarShift k 0 (.lam [t|0] (.id 0)) = (.lam [t|0] $ .id 0)            := by simp [bvarShift]
 example : bvarShift k 0 (.lam [t|0] (.id 1)) = (.lam [t|0] $ .id (1 + k))      := by simp [bvarShift]
-example : bvarShift k 0 (.tlam (.id 0)) = (.tlam $ .id 0)                      := by simp [bvarShift]
+example : bvarShift k 0 (.tlam (.id 0)) = (.tlam $ .id k)                      := by simp [bvarShift]
 example : bvarShift k 0 (.tlam (.id 1)) = (.tlam $ .id (1 + k))                := by simp [bvarShift]
 end
 
@@ -79,9 +80,8 @@ theorem bvarShift_RefSet_general_rev {body idx shift}
     rw [Nat.add_assoc] at h
     exact bvarShift_RefSet_general_rev (skip + 1) h
   | .tlam body => by
-    simp only [bvarShift, Nat.succ_eq_add_one, RefSet_tlam] at h ⊢
-    rw [Nat.add_assoc] at h
-    exact bvarShift_RefSet_general_rev (skip + 1) h
+    simp only [bvarShift, RefSet_tlam] at h ⊢
+    exact bvarShift_RefSet_general_rev skip h
   | .app a b => by
     simp only [bvarShift, RefSet_app] at h ⊢
     cases h
@@ -92,7 +92,7 @@ theorem bvarShift_RefSet_general_rev {body idx shift}
     exact bvarShift_RefSet_general_rev skip h
 
 example {n} : RefSet (.lam [t|0] (.id (n + 1))) n := .lam .id
-example {n} : RefSet (.tlam (.id (n + 1))) n := .tlam .id
+example {n} : RefSet (.tlam (.id n)) n := .tlam .id
 
 theorem bvarShift_RefSet_rev
     {body idx shift}
@@ -123,8 +123,8 @@ theorem bvarShift_RefSet_general_lt_rev {body idx shift}
     simp only [bvarShift, Nat.succ_eq_add_one, RefSet_lam] at h ⊢
     exact bvarShift_RefSet_general_lt_rev (skip + 1) (by omega) h
   | .tlam body => by
-    simp only [bvarShift, Nat.succ_eq_add_one, RefSet_tlam] at h ⊢
-    exact bvarShift_RefSet_general_lt_rev (skip + 1) (by omega) h
+    simp only [bvarShift, RefSet_tlam] at h ⊢
+    exact bvarShift_RefSet_general_lt_rev skip (by omega) h
   | .app a b => by
     simp only [bvarShift, RefSet_app] at h ⊢
     cases h
@@ -144,7 +144,7 @@ theorem bvarShift_range
     cases bvarShift_range (skip := skip.succ) h
     <;> grind
   | .tlam body, .tlam h => by
-    cases bvarShift_range (skip := skip.succ) h
+    cases bvarShift_range h
     <;> grind
   | .app a b, .appL h | .app a b, .appR h => by
     have := bvarShift_range h
@@ -155,9 +155,9 @@ theorem bvarShift_range
 
 theorem replace_RefSet_general_lt_rev
     {repl : Expr}
-    {idx jdx}
+    {idx jdx ts}
     (hlt : idx < jdx)
-    : {body : Expr} → RefSet (body.replace jdx repl) idx
+    : {body : Expr} → RefSet (body.replace jdx ts repl) idx
     → RefSet body idx
   | .id x, h => by
     simp only [replace, replace.bvar, Nat.pred_eq_sub_one] at h
@@ -169,7 +169,7 @@ theorem replace_RefSet_general_lt_rev
   | .lam ty body, .lam h => RefSet_lam.mpr
     <| replace_RefSet_general_lt_rev (Nat.add_lt_add_right hlt 1) h
   | .tlam body, .tlam h => RefSet_tlam.mpr
-    <| replace_RefSet_general_lt_rev (Nat.add_lt_add_right hlt 1) h
+    <| replace_RefSet_general_lt_rev hlt h
   | .app a b, .appL h => RefSet_app.mpr
     <| .inl <| replace_RefSet_general_lt_rev hlt h
   | .app a b, .appR h => RefSet_app.mpr
@@ -179,9 +179,9 @@ theorem replace_RefSet_general_lt_rev
 
 theorem replace_RefSet_general_ge_rev
     {repl : Expr}
-    {idx jdx}
+    {idx jdx ts}
     (hlt : jdx ≤ idx)
-    : {body : Expr} → RefSet (body.replace jdx repl) idx
+    : {body : Expr} → RefSet (body.replace jdx ts repl) idx
     → (RefSet body idx.succ ∨ RefSet repl (idx - jdx))
   | .id x, h => by
     simp only [replace, replace.bvar, Nat.pred_eq_sub_one] at h
@@ -189,15 +189,14 @@ theorem replace_RefSet_general_ge_rev
     <;> simp_all only [Std.LawfulEqCmp.compare_eq_iff_eq, RefSet_id,
       Nat.compare_eq_gt, Nat.compare_eq_lt]
     any_goals grind only
-    exact .inr <| bvarShift_RefSet_general_rev' _ (by omega) h
+    exact .inr $ tBvarShift_RefSet.mp $ bvarShift_RefSet_general_rev' 0 (by omega) h
   | .lam ty body, .lam h => by
     simp only [Nat.succ_eq_add_one, RefSet_lam] at *
     have := replace_RefSet_general_ge_rev (Nat.add_le_add_right hlt 1) h
     simp_all only [Nat.reduceSubDiff]
   | .tlam body, .tlam h => by
     simp only [Nat.succ_eq_add_one, RefSet_tlam] at *
-    have := replace_RefSet_general_ge_rev (Nat.add_le_add_right hlt 1) h
-    simp_all only [Nat.reduceSubDiff]
+    exact replace_RefSet_general_ge_rev hlt h
   | .app a b, .appL h
   | .app a b, .appR h => by
     simp only [Nat.succ_eq_add_one, RefSet_app]

@@ -9,7 +9,7 @@ inductive RefSet : Expr → Nat → Prop
   | appR {a b idx} : RefSet b idx → RefSet (.app a b) idx
   | lam {ty body idx} : RefSet body idx.succ → RefSet (.lam ty body) idx
   | tappL {expr ty idx} : RefSet expr idx → RefSet (.tapp expr ty) idx
-  | tlam {body idx} : RefSet body idx.succ → RefSet (.tlam body) idx
+  | tlam {body idx} : RefSet body idx → RefSet (.tlam body) idx
   | id {idx} : RefSet (.id idx) idx
 
 @[simp, grind =]
@@ -17,7 +17,7 @@ theorem RefSet_lam {ty body idx} : RefSet (.lam ty body) idx ↔ RefSet body (id
   grind
 
 @[simp, grind =]
-theorem RefSet_tlam {body idx} : RefSet (.tlam body) idx ↔ RefSet body (idx + 1) := by
+theorem RefSet_tlam {body idx} : RefSet (.tlam body) idx ↔ RefSet body idx := by
   grind
 
 @[simp, grind =]
@@ -48,7 +48,7 @@ instance RefSet.dec : {e : Expr} → {n : Nat} → Decidable (RefSet e n)
   | .lam ty b, v => match @RefSet.dec b v.succ with
     | .isTrue h => .isTrue <| .lam h
     | .isFalse h => .isFalse <| by simpa
-  | .tlam b, v => match @RefSet.dec b v.succ with
+  | .tlam b, v => match @RefSet.dec b v with
     | .isTrue h => .isTrue <| .tlam h
     | .isFalse h => .isFalse <| by simpa
   | .app a b, v =>
