@@ -33,3 +33,14 @@ def bvarShift (shift skip : Nat) (x : E n) : E (n + shift) :=
 def replace (hbody : E n.succ) (hrepl : E n) : E n :=
   .mk _ $ Valid.replace hbody.val hrepl.val
 
+@[simp]
+theorem bvarShift.comb {k z} {v : E z}
+    : (bvarShift 1 0 (bvarShift k 0 v)) = bvarShift k.succ 0 v := by
+  simp only [bvarShift, Ty.bvarShift.comb, Nat.succ_eq_add_one, mk.injEq]
+  rw [Nat.add_comm]
+
+@[simp]
+theorem bvarShift.comb' {k z}
+    : (bvarShift 1 0) ∘ (bvarShift (n := z) k 0) = bvarShift k.succ 0 :=
+  funext fun _ => bvarShift.comb
+

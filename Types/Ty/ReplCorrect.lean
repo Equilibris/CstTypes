@@ -32,6 +32,18 @@ theorem bvarShift.inv {n z} : bvarShift 0 n z = z := by
     simp only [Ty.fa.injEq]
     exact ih
 
+@[simp]
+theorem bvarShift.comb {n k s}
+    : {v : _} → (bvarShift n s (bvarShift k s v)) = bvarShift (n + k) s v
+  | .id _ => by dsimp [bvarShift]; grind
+  | .fa _ => (Ty.fa.injEq _ _).mpr bvarShift.comb
+  | .fn _ _ => (Ty.fn.injEq _ _ _ _).mpr ⟨bvarShift.comb, bvarShift.comb⟩
+
+@[simp]
+theorem bvarShift.comb' {n k s}
+    : (bvarShift n s ∘ bvarShift k s) = bvarShift (n + k) s :=
+  funext fun _ => bvarShift.comb 
+
 theorem bvarShift_RefSet_general {body idx skip shift} (h : RefSet body (idx + skip)) : RefSet (body.bvarShift shift skip) (idx + shift + skip) :=
   match body with
   | .id n => by

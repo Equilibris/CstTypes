@@ -1,5 +1,6 @@
 import Types.Expr.Valid
 import Types.Expr.TReplCorrect
+import Mathlib.Tactic.DepRewrite
 
 namespace Expr
 
@@ -12,7 +13,7 @@ inductive SOp : Expr → Expr → Type
   | tlamCongr {a b}   : SOp a b → SOp [e|Λ. a] [e|Λ. b]
 
   | tRed {a b}   : SOp [e|(Λ. a) [b]] (a.tReplace 0 b)
-  | red  {a b t} : SOp [e|(λ : t. a) b] (a.replace 0 b)
+  | red  {a b t} : SOp [e|(λ : t. a) b] (a.replace 0 0 b)
 
 theorem bvarShift_maintain_gen
     {n : Nat} {Γ₂ Γ₁ Γ : List (Ty.E n)} {body : Expr} {ty₂ : Ty.E n}
@@ -61,11 +62,30 @@ theorem bvarShift_maintain
   change Typed n ([] ++ Γ₁ ++ Γ) (bvarShift Γ₁.length ([] : List (Ty.E n)).length body) ty₂
   exact bvarShift_maintain_gen h
 
+
+theorem Typed_tBvarShift
+    {n Γ arg x k sk}
+    : Typed n Γ arg x
+    → Typed (n + k)
+        (List.map (Ty.E.bvarShift k sk) Γ)
+        (tBvarShift k sk arg)
+        (Ty.E.bvarShift k sk x)
+  | .id _ => by simp [tBvarShift]
+  | .tlam _ => sorry
+  | .tapp hv h => by
+    simp [tBvarShift]
+    /- apply Typed.tapp (Ty.Valid.bvarShift hv) -/
+    sorry
+  | .lam hv h => by 
+    sorry
+  | .app hb ha => .app (Typed_tBvarShift hb) (Typed_tBvarShift ha)
+
 theorem Typed_replace_gen
-    {n : Nat} {Γ' Γ : List (Ty.E n)} {arg body : Expr} {x ty₁ : Ty.E n}
+    {n k : Nat} {Γ' : List (Ty.E (n + k))} {Γ : List (Ty.E n)} {arg body : Expr}
+    {ty₁ : Ty.E (n + k)} {x : Ty.E n}
     (argTy : Typed n Γ arg x)
-    (base : Typed n (Γ' ++ (x :: Γ)) body ty₁)
-    : Typed n (Γ' ++ Γ) (body.replace Γ'.length 0 arg) ty₁ :=
+    (base : Typed (n + k) (Γ' ++ List.map (Ty.E.bvarShift k 0) (x :: Γ)) body ty₁)
+    : Typed (n + k) (Γ' ++ List.map (Ty.E.bvarShift k 0) Γ) (body.replace Γ'.length k arg) ty₁ :=
   match body with
   | .id idx => by
     rw [replace, replace.bvar, Nat.pred_eq_sub_one]
@@ -80,15 +100,16 @@ theorem Typed_replace_gen
       cases i
       dsimp at heq
       subst heq
-      simp only [Fin.getElem_fin, Nat.le_refl, List.getElem_append_right, Nat.sub_self,
-        List.getElem_cons_zero]
-      exact bvarShift_maintain argTy
+      apply bvarShift_maintain 
+      simp only [List.map_cons, Fin.getElem_fin, Nat.le_refl, List.getElem_append_right,
+        Nat.sub_self, List.getElem_cons_zero]
+      exact Typed_tBvarShift argTy
     · cases base; next i =>
       cases i; next n =>
       simp only [Fin.getElem_fin, Typed_id, List.length_append]
       exists (by grind)
-      simp at heq n
-      change (Γ' ++ ([x] ++ Γ))[_] = _
+      simp only [List.map_cons, List.length_append, List.length_cons, List.length_map] at heq n
+      change (_ ++ ([_] ++ _))[_] = _
       repeat rw [List.getElem_append_right (by grind)]
       congr 1
       rw [List.length_singleton]
@@ -110,9 +131,14 @@ theorem Typed_replace_gen
     rw [replace]
     cases base; next h =>
     apply Typed.tlam
-    rw [List.map_append, List.map_cons] at h
+    rw [List.map_append, List.map_cons, List.map_cons, List.map_map] at h
+    simp only [Nat.succ_eq_add_one, Ty.E.bvarShift.comb, Ty.E.bvarShift.comb'] at h
+    rw! (castMode := .all) [Nat.add_assoc] at h
     have := Typed_replace_gen argTy h
-    sorry
+    rw! (castMode := .all) [←Nat.add_assoc] at this
+    simp only [List.length_map, Nat.succ_eq_add_one, List.map_append, List.map_map,
+        Ty.E.bvarShift.comb'] at this ⊢
+    exact this
 
 theorem Typed_tReplace_gen
     {n : Nat} {Γ : List (Ty.E n)} {body : Expr} {retT : Ty.E n.succ} {replT : Ty.E n}
