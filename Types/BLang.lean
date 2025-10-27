@@ -14,20 +14,51 @@ namespace BLang1
 inductive Stx : Ty → Type
   | true : Stx .bool
   | false : Stx .bool
-  | n (x : Nat) : Stx .int
+  | n (x : Int) : Stx .int
   | lt : Stx .int → Stx .int → Stx .bool
   | add : Stx .int → Stx .int → Stx .int
   | and : Stx .bool → Stx .bool → Stx .bool
   | neg : Stx .bool → Stx .bool
 
-def Stx.denote : {t : Ty} → Stx t → t.denote
+namespace Stx
+
+inductive Val : {t : _} → Stx t → Type
+  | true  : Val .true
+  | false : Val .false
+  | n {n} : Val (.n n)
+
+instance {t} {s : Stx t} : Subsingleton (Val s) where
+  allEq
+    | .true, .true => rfl
+    | .false, .false => rfl
+    | .n, .n => rfl
+
+def denote : {t : Ty} → Stx t → t.denote
   | .bool, .true => True
   | .bool, .false => False
-  | .int, .n x => Int.ofNat x
+  | .int, .n x => x
   | .bool, .lt a b => Int.lt (a.denote : Int) (b.denote : Int)
   | .int, .add a b => Int.add a.denote b.denote
   | .bool, .and a b => a.denote ∧ b.denote
   | .bool, .neg a => ¬a.denote
+
+inductive Red : {t : _} → Stx t → Stx t → Prop
+  | ltCongr   {e e' l} : Red e e' → Red (.lt e l) (.lt e' l)
+  | ltCongr'  {e e' n} : Red e e' → Red (.lt (.n n) e) (.lt (.n n) e')
+  | ltLt      {a b}    : a < b → Red (.lt (.n a) (.n b)) .true
+  | ltGe      {a b}    : b ≤ a → Red (.lt (.n a) (.n b)) .false
+  | addCongr  {e e' l} : Red e e' → Red (.add e l) (.add e' l)
+  | addCongr' {e e' n} : Red e e' → Red (.add (.n n) e) (.add (.n n) e')
+  | add       {a b}    : Red (.add (.n a) (.n b)) (.n <| a + b)
+  | andCongr  {e e' l} : Red e e' → Red (.and e l) (.and e' l)
+  | andTrue   {e}      : Red (.and .true e) e
+  | andFalse  {e}      : Red (.and .false e) .false
+  | negCongr  {e e'}   : Red e e' → Red (.neg e) (.neg e')
+  | negTrue            : Red (.neg .true) .false
+  | negFalse           : Red (.neg .false) .true
+
+
+end Stx
 
 end BLang1
 

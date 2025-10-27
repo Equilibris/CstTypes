@@ -1,0 +1,88 @@
+import Types.STLC.Typed
+import Types.STLC.Infer
+
+namespace STLC
+
+-- I finally see why proof-relevance is useful.
+-- Damn that took me a long time to get
+-- This does not work due to how AC is defined on Prop...
+-- And (=) does only produce a Prop
+
+-- C for constructive
+inductive CTySpec : List Ty → Stx → Ty → Type
+  | bvar {idx Γ ty} : Γ[idx]? = some ty → CTySpec Γ (.bvar idx) ty
+
+  | app {Γ fn argTy retTy arg} : CTySpec Γ fn (argTy ⇒ retTy) → CTySpec Γ arg argTy
+      → CTySpec Γ (.app fn arg) retTy
+  | abs {Γ argTy retTy body}
+      : CTySpec (argTy :: Γ) body retTy
+      → CTySpec Γ (.abs argTy body) (argTy ⇒ retTy)
+
+theorem CTySpec_TySpec {Γ s ty} (h : CTySpec Γ s ty) : TySpec Γ s ty := by
+  induction h
+  · exact .bvar (by assumption)
+  · exact .app (by assumption) (by assumption)
+  · exact .abs (by assumption)
+
+/- theorem TySpec_CTySpec (h : TySpec Γ s ty) : ∃ _ : CTySpec Γ s ty, True := by -/
+/-   induction h -/
+/-   · use (.bvar (by assumption)) -/
+/-   case app iha ihb => -/
+/-     rcases iha with ⟨iha, _⟩ -/
+/-     rcases ihb with ⟨ihb, _⟩ -/
+/-     use .app (by assumption) (by assumption) -/
+/-   case abs ih => -/
+/-     rcases ih with ⟨ih, _⟩ -/
+/-     use .abs (by assumption) -/
+
+def build {Γ s ty} (h : infer Γ s = some ty) : CTySpec Γ s ty :=
+  match s with
+  | .bvar idx => .bvar (by simpa only)
+  | .abs ty body =>
+    match h' : infer (ty :: Γ) body with
+    | .none => by
+      -- contra
+      simp [infer, h'] at h
+    | .some x => by
+      simp only [infer, h', Option.map_some, Option.some.injEq] at h
+      subst h
+      exact .abs (build h')
+  | .app a b =>
+    match ha : infer Γ a, hb : infer Γ b with
+    | some aTy, some bTy => by
+      simp only [infer, ha, hb, Option.bind_eq_bind, Option.bind_some] at h
+      split at h
+      any_goals split at h
+      any_goals contradiction
+      next h' =>
+      have := ((Option.some.injEq _ _).mp h)
+      subst this h'
+      exact .app (build ha) (build hb)
+    | none, _ => by
+      -- contra
+      simp [infer, ha, Option.bind_eq_bind] at h
+
+    | some (.direct _), none
+    | some (.arr _ _),  none => by
+      simp [infer, ha, hb, Option.bind_eq_bind] at h
+
+def TySpec_CTySpec {Γ s ty} (h : TySpec Γ s ty) : CTySpec Γ s ty := build (infer_TySpec.mpr h)
+
+theorem CTySpec_unique {Γ s o₁ o₂} (h₁ : CTySpec Γ s o₁) (h₂ : CTySpec Γ s o₂) : o₁ = o₂ :=
+  TySpec_unique (CTySpec_TySpec h₁) (CTySpec_TySpec h₂)
+
+theorem CTySpec_singleton {Γ s ty} (a b : CTySpec Γ s ty) : a = b :=
+  match s with
+  | .bvar _ => by cases a; cases b; rfl
+  | .abs _ _ => by
+    cases a; cases b; next a b =>
+    rw [CTySpec_singleton a b]
+  | .app _ _ => by
+    cases a; cases b; next a₁ b₁ _ a₂ b₂ =>
+    obtain rfl := CTySpec_unique a₁ a₂
+    rw [CTySpec_singleton a₁ a₂, CTySpec_singleton b₁ b₂]
+
+instance {Γ s ty} : Subsingleton (CTySpec Γ s ty) := ⟨CTySpec_singleton⟩
+
+end STLC
+
