@@ -8,8 +8,8 @@ def Ty.denote : Ty → Type
 
   | .cpd t1 t2 => t1.denote ⊕ t2.denote
   | .prod t1 t2 => t1.denote × t2.denote
-  | .empty => PEmpty
-  | .unit => PUnit
+  | .empty => Empty
+  | .unit => Unit
 
 @[simp]
 def Term'.denote {ty : Ty} : Term' Ty.denote ty → ty.denote

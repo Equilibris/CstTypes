@@ -97,11 +97,11 @@ example : Term'.denote true_term = Sum.inl PUnit.unit := rfl
 example : Term'.denote false_term = Sum.inr PUnit.unit := rfl
 
 -- Show examples
-/-- info: "((Unit ⊕ Unit) → (Unit → (Unit → Unit)))" -/
+/-- info: "((1 ⊕ 1) → (1 → (1 → 1)))" -/
 #guard_msgs in
 #eval Ty.show (if_then_else_type Ty.unit)
 
-/-- info: "(λa.(λb.(λc.(case a of inl d => b | inr e => c))))" -/
+/-- info: "(λa : (1 ⊕ 1). (λb : 1. (λc : 1. (case a of inl d => b | inr e => c))))" -/
 #guard_msgs in
 #eval Term'.show (if_then_else Ty.unit)
 
@@ -113,11 +113,11 @@ example : Term'.denote false_term = Sum.inr PUnit.unit := rfl
 #guard_msgs in
 #eval Term'.show false_term
 
-/-- info: "(λa.⟨(a.2), (a.1)⟩)" -/
+/-- info: "(λa : (1 × 1). ⟨(a.2), (a.1)⟩)" -/
 #guard_msgs in
 #eval Term'.show (swap Ty.unit Ty.unit)
 
-/-- info: "(λa.(λb.(λc.((a (b c)))))))" -/
+/-- info: "(λa.(λb.(λc.(a (b c)))))" -/
 #guard_msgs in
 #eval Term'.show (compose Ty.unit Ty.unit Ty.unit)
 
