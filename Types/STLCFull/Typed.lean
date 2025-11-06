@@ -173,8 +173,7 @@ theorem TySpec_replace
 
 theorem TypePreservation
     {e₁ e₂ ty Γ}
-    (h : Red e₁ e₂) (hTy : TySpec Γ e₁ ty) : TySpec Γ e₂ ty :=
-  match h, hTy with
+    : Red e₁ e₂ → TySpec Γ e₁ ty → TySpec Γ e₂ ty
   | .app_fn h, .app ha hb => .app (TypePreservation h ha) hb
   | .app_arg h, .app ha hb => .app ha (TypePreservation h hb)
   | .abs h, .abs hTy => .abs <| TypePreservation h hTy
@@ -182,7 +181,7 @@ theorem TypePreservation
   | .prod_snd h, .prod ha hb => .prod ha (TypePreservation h hb)
   | .fst h, .fst hTy => .fst <| TypePreservation h hTy
   | .snd h, .snd hTy => .snd <| TypePreservation h hTy
-  | .beta, hTy => TySpec_replace ‹_›
+  | .beta, hTy => TySpec_replace hTy
   | .fst_beta, .fst (.prod ha _) => ha
   | .snd_beta, .snd (.prod _ hb) => hb
 

@@ -197,6 +197,8 @@ end Ex6
 
 end STLCFull
 
+
+
 section Ex8
 
 -- A more nice constructive way of checking equivilent types is using bijection

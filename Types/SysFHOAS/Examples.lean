@@ -14,62 +14,62 @@ def id_type : Ty :=
 -- id : id_type =  ∀ α. α → α
 -- id = Λ α. λ (x : α). x
 def system_f_id : Term id_type :=
-    Term'.tlam (fun α => Term'.lam (fun x => Term'.var x))
+    .tlam (fun α => .lam (fun x => .var x))
 
 def church_bool_type : Ty :=
   Type'.all (fun α => Type'.arr ((Type'.var α)) (Type'.arr (Type'.var α) (Type'.var α)))
 
 def church_bool_true : Term church_bool_type :=
-  Term'.tlam (fun α  => Term'.lam (fun t => Term'.lam (fun f => Term'.var t)))
+  .tlam (fun α  => .lam (fun t => .lam (fun f => .var t)))
 
 def church_bool_false : Term church_bool_type :=
-  Term'.tlam (fun α => Term'.lam (fun t => Term'.lam (fun f => Term'.var f)))
+  .tlam (fun α => .lam (fun t => .lam (fun f => .var f)))
 
 def church_if_type : Ty :=
   Type'.all fun α => Type'.arr church_bool_type (Type'.arr (Type'.var α) (Type'.arr (Type'.var α) (Type'.var α)))
 
 def church_if : Term church_if_type :=
-  Term'.tlam fun α =>
-    Term'.lam fun b =>
-      Term'.lam fun t =>
-        Term'.lam fun f =>
-          Term'.app
-            (Term'.app
-              (Term'.tapp (Term'.var b) α)
-              (Term'.var t))
-            (Term'.var f)
+  .tlam fun α =>
+    .lam fun b =>
+      .lam fun t =>
+        .lam fun f =>
+          .app
+            (.app
+              (.tapp (.var b) α)
+              (.var t))
+            (.var f)
 
 -- Λ α. λ X Y. (if α true X Y)
 def church_if_true_syntax : Term church_bool_type :=
   fun {T} {rep} =>
-    Term'.tlam (fun α =>
-      Term'.lam (fun X =>
-        Term'.lam (fun Y =>
-          Term'.app
-            (Term'.app
-              (Term'.app
-                (Term'.tapp (church_if (T:=T) (rep:=rep)) α)
-                (church_bool_true (T:=T) (rep:=rep)))
-              (Term'.var X))
-            (Term'.var Y))))
+    .tlam (fun α =>
+      .lam (fun X =>
+        .lam (fun Y =>
+          .app
+            (.app
+              (.app
+                (.tapp church_if α)
+                (church_bool_true))
+              (.var X))
+            (.var Y))))
 
 -- Λ α. λ X Y. X
 def choose_left_syntax : Term church_bool_type :=
-  Term'.tlam (fun α => Term'.lam (fun X => Term'.lam (fun Y => Term'.var X)))
+  .tlam (fun α => .lam (fun X => .lam (fun Y => .var X)))
 
 -- Λ α. λ X Y. (if α false X Y)
 def church_if_false_syntax : Term church_bool_type :=
   fun {T} {rep} =>
-    Term'.tlam (fun α =>
-      Term'.lam (fun X =>
-        Term'.lam (fun Y =>
-          Term'.app
-            (Term'.app
-              (Term'.app
-                (Term'.tapp (church_if (T:=T) (rep:=rep)) α)
+    .tlam (fun α =>
+      .lam (fun X =>
+        .lam (fun Y =>
+          .app
+            (.app
+              (.app
+                (.tapp (church_if (T:=T) (rep:=rep)) α)
                 (church_bool_false (T:=T) (rep:=rep)))
-              (Term'.var X))
-            (Term'.var Y))))
+              (.var X))
+            (.var Y))))
 
 
 
@@ -83,47 +83,47 @@ example : Term'.denote church_if = (fun x b t f => b x t f) := rfl
 
 /-- info: "∀α. (α → α)" -/
 #guard_msgs in
-#eval Type'.show id_type
+#eval id_type.show
 
 /-- info: "(Λα. (λa.a))" -/
 #guard_msgs in
-#eval Term'.show (system_f_id)
+#eval system_f_id.show
 
 /-- info: "(Λα. (λa.(λb.a)))" -/
 #guard_msgs in
-#eval Term'.show (church_bool_true)
+#eval church_bool_true.show
 
 /-- info: "(Λα. (λa.(λb.b)))" -/
 #guard_msgs in
-#eval Term'.show (church_bool_false)
+#eval church_bool_false.show
 
 /-- info: "(Λα. (λa.(λb.(λc.(((a [(α → (α → α))]) b) c)))))" -/
 #guard_msgs in
-#eval Term'.show (church_if)
+#eval church_if.show
 
 /--
 info: "(Λα. (λa.(λb.(((((Λβ . (λc.(λd.(λe.(((c [(β  → (β  → β ))]) d) e))))) [(∀β . (β  → (β  → β )) → (α → (α → α)))]) (Λβ . (λc.(λd.c)))) a) b))))"
 -/
 #guard_msgs in
-#eval Term'.show church_if_true_syntax
+#eval church_if_true_syntax.show
 
 /--
 info: "(Λα. (λa.(λb.(((((Λβ . (λc.(λd.(λe.(((c [(β  → (β  → β ))]) d) e))))) [(∀β . (β  → (β  → β )) → (α → (α → α)))]) (Λβ . (λc.(λd.d)))) a) b))))"
 -/
 #guard_msgs in
-#eval Term'.show church_if_false_syntax
+#eval church_if_false_syntax.show
 
 @[simp]
 theorem church_if_true {A : Sort u} (X Y : PLift A) :
-    (Term'.denote church_if) A (Term'.denote church_bool_true) X Y = X := rfl
+    church_if.denote A church_bool_true.denote X Y = X := rfl
 
 @[simp]
 theorem church_if_false {A : Sort u} (X Y : PLift A) :
-    (Term'.denote church_if) A (Term'.denote church_bool_false) X Y = Y := rfl
+    church_if.denote  A church_bool_false.denote X Y = Y := rfl
 
 -- Λ α. λ X Y. Y
 def choose_right_syntax : Term church_bool_type :=
-  Term'.tlam (fun α => Term'.lam (fun X => Term'.lam (fun Y => Term'.var Y)))
+  .tlam (fun α => .lam (fun X => .lam (fun Y => .var Y)))
 
 -- Denotational equivalence theorems over the syntax
 -- prove that Λ α. λ X Y. (if α true X Y) = Λ α. λ X Y. X
