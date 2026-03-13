@@ -18,6 +18,7 @@ inductive TySpec : List Ty → Stx → Ty → Prop
       → TySpec Γ (.fst expr) tyA
   | snd {Γ expr tyA tyB} : TySpec Γ expr (.prod tyA tyB)
       → TySpec Γ (.snd expr) tyB
+  | unit {Γ} : TySpec Γ .unit .unit
 
 @[simp, grind =]
 theorem TySpec_bvar {Γ idx ty} : TySpec Γ (.bvar idx) ty ↔ Γ[idx]? = some ty := by
@@ -48,6 +49,9 @@ theorem TySpec_snd {Γ expr tyB}
     : TySpec Γ (.snd expr) tyB ↔ ∃ tyA, TySpec Γ expr (.prod tyA tyB) := by
   grind
 
+@[simp, grind =]
+theorem TySpec_unit {Γ} : TySpec Γ .unit .unit ↔ True := by grind
+
 theorem TySpec_abs' {Γ argTy body z}
     : TySpec Γ (.abs argTy body) z
     ↔ ∃ retTy, (z = (.arr argTy retTy)) ∧ (TySpec (argTy :: Γ) body retTy) := by
@@ -69,12 +73,13 @@ theorem TySpec_unique {Γ i o₁ o₂} (a : TySpec Γ i o₁) (b : TySpec Γ i o
   | .abs ty body, .abs ha, .abs hb => by
     obtain rfl := TySpec_unique ha hb
     rfl
-  | .prod exprA exprB, .prod ha₁ hb₁, .prod ha₂ hb₂ => 
+  | .prod exprA exprB, .prod ha₁ hb₁, .prod ha₂ hb₂ =>
     (Ty.prod.injEq _ _ _ _).mpr ⟨TySpec_unique ha₁ ha₂, TySpec_unique hb₁ hb₂⟩
   | .fst expr, .fst ha, .fst hb =>
     ((Ty.prod.injEq _ _ _ _).mp <| TySpec_unique ha hb).left
   | .snd expr, .snd ha, .snd hb =>
     ((Ty.prod.injEq _ _ _ _).mp <| TySpec_unique ha hb).right
+  | .unit, .unit, .unit => rfl
 
 theorem bvarShift_maintain_gen
     {Γ₂ Γ body ty₂ Γ₁}
@@ -100,18 +105,15 @@ theorem bvarShift_maintain_gen
     rw [List.append_assoc, Stx.bvarShift, Nat.succ_eq_add_one, ←List.append_assoc]
     rw [←List.cons_append] at h
     exact .abs <| bvarShift_maintain_gen h
-  | .app a b, .app ha hb => by
-    rw [Stx.bvarShift]
-    exact .app (bvarShift_maintain_gen ha) (bvarShift_maintain_gen hb)
-  | .prod a b, .prod ha hb => by
-    rw [Stx.bvarShift]
-    exact .prod (bvarShift_maintain_gen ha) (bvarShift_maintain_gen hb)
-  | .fst expr, .fst h => by
-    rw [Stx.bvarShift]
-    exact .fst <| bvarShift_maintain_gen h
-  | .snd expr, .snd h => by
-    rw [Stx.bvarShift]
-    exact .snd <| bvarShift_maintain_gen h
+  | .app a b, .app ha hb => 
+    .app (bvarShift_maintain_gen ha) (bvarShift_maintain_gen hb)
+  | .prod a b, .prod ha hb =>
+    .prod (bvarShift_maintain_gen ha) (bvarShift_maintain_gen hb)
+  | .fst expr, .fst h =>
+    .fst <| bvarShift_maintain_gen h
+  | .snd expr, .snd h =>
+    .snd <| bvarShift_maintain_gen h
+  | .unit, .unit => .unit
 
 theorem bvarShift_maintain
     {Γ body ty₂ Γ₁}
@@ -159,6 +161,7 @@ theorem TySpec_replace_gen
   | .prod a b, .prod hA hB => .prod (TySpec_replace_gen argTy hA) (TySpec_replace_gen argTy hB)
   | .fst expr, .fst h => .fst (TySpec_replace_gen argTy h)
   | .snd expr, .snd h => .snd (TySpec_replace_gen argTy h)
+  | .unit, .unit => .unit
 
 theorem TySpec_replace
     {Γ x body ty₁ v}
@@ -171,8 +174,7 @@ theorem TySpec_replace
   change TySpec ([] ++ x :: Γ) _ _ at a
   exact TySpec_replace_gen argTy a
 
-theorem TypePreservation
-    {e₁ e₂ ty Γ}
+theorem TypePreservation {e₁ e₂ ty Γ}
     : Red e₁ e₂ → TySpec Γ e₁ ty → TySpec Γ e₂ ty
   | .app_fn h, .app ha hb => .app (TypePreservation h ha) hb
   | .app_arg h, .app ha hb => .app ha (TypePreservation h hb)

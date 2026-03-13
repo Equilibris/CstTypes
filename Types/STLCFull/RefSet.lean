@@ -38,6 +38,10 @@ theorem RefSet_snd {expr idx} : RefSet (.snd expr) idx ↔ RefSet expr idx := by
 theorem RefSet_bvar {idx jdx} : RefSet (.bvar idx) jdx ↔ idx = jdx := by
   grind
 
+@[simp, grind =]
+theorem RefSet_unit {idx} : RefSet .unit idx ↔ False := by
+  grind
+
 example : RefSet (.abs .unit (.app (.bvar 1) (.bvar 0))) 0 := .abs (.app_fn .bvar)
 example : ¬∃ n, RefSet (.abs .unit (.bvar 0)) n := by simp
 
@@ -69,5 +73,6 @@ instance RefSet.dec : {e : Stx} → {n : Nat} → Decidable (RefSet e n)
   | .snd expr, v => match @RefSet.dec expr v with
     | .isTrue h => .isTrue <| .snd h
     | .isFalse h => .isFalse <| by simpa
+  | .unit, _ => .isFalse $ fun h => nomatch h
 
 end STLCFull

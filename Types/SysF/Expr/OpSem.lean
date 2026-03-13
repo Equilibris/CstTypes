@@ -1,6 +1,7 @@
 import Types.SysF.Expr.Valid
 import Types.SysF.Expr.TReplCorrect
 import Mathlib.Tactic.DepRewrite
+import Mathlib.Data.Rel
 
 namespace Expr
 
@@ -37,7 +38,7 @@ theorem bvarShift_maintain_gen
   | .lam ty body => by
     cases h; next hv h =>
     rw [←List.cons_append] at h
-    exact .lam hv $ bvarShift_maintain_gen h
+    exact .lam hv <| bvarShift_maintain_gen h
   | .app a b => by
     rw [bvarShift]
     cases h; next ha hb =>
@@ -45,7 +46,7 @@ theorem bvarShift_maintain_gen
   | .tapp expr ty => by
     rw [bvarShift]
     cases h; next hv h =>
-    exact .tapp h $ bvarShift_maintain_gen hv
+    exact .tapp h <| bvarShift_maintain_gen hv
   | .tlam body => by
     cases h; next h =>
     apply Typed.tlam
@@ -118,7 +119,7 @@ theorem Typed_replace_gen
     rw [replace, Nat.succ_eq_add_one]
     cases base; next hv base =>
     rw [←List.cons_append] at base
-    exact .lam hv $ Typed_replace_gen argTy base
+    exact .lam hv <| Typed_replace_gen argTy base
   | .app a b => by
     rw [replace]
     cases base; next ha hb =>
@@ -126,7 +127,7 @@ theorem Typed_replace_gen
   | .tapp expr ty => by
     rw [replace]
     cases base; next hv h =>
-    exact .tapp h $ Typed_replace_gen argTy hv
+    exact .tapp h <| Typed_replace_gen argTy hv
   | .tlam body => by
     rw [replace]
     cases base; next h =>
@@ -148,20 +149,24 @@ theorem Typed_tReplace_gen
   | .id idx => by
     cases h; next i =>
     simp [tReplace]
-    have : Γ[idx]? = some (Γ.map (Ty.E.bvarShift 1 0))[idx] := by
-      rw [List.getElem?_map]
-      simp
-    simp [Ty.E.replace]
-    exact .id ⟨idx, i.isLt⟩
+    use (by grind)
+    apply (Ty.E.mk.injEq _ _ _ _).mpr
+    change Ty.replace 0 (Ty.bvarShift 1 0 _) _ = _
+    rw [Ty.replace_nRefSet_id , Ty.bvarUnShift_bvarShift]
+    · rfl
+    · intro h
+      have := Ty.bvarShift_range h
+      omega
   | .lam ty body => by
     cases h; next hv h =>
     simp [tReplace]
+    have := Typed_tReplace_gen h
     -- Type validity preservation needed
     sorry
   | .app a b => by
     cases h; next ha hb =>
     simp [tReplace]
-    exact .app (Typed_tReplace_gen ha) (Typed_tReplace_gen hb)
+    exact .app (Typed_tReplace_gen hb) (Typed_tReplace_gen ha)
   | .tapp expr ty => by
     cases h; next hv h =>
     simp [tReplace]

@@ -14,6 +14,7 @@ inductive Stx
   | prod : Stx → Stx → Stx
   | fst  : Stx → Stx
   | snd  : Stx → Stx
+  | unit
 deriving DecidableEq
 
 end STLCFull

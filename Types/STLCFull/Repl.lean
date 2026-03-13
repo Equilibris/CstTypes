@@ -11,6 +11,7 @@ def bvarShift (shift skip : Nat) : Stx → Stx
   | .prod a b => .prod (a.bvarShift shift skip) (b.bvarShift shift skip)
   | .fst expr => .fst (expr.bvarShift shift skip)
   | .snd expr => .snd (expr.bvarShift shift skip)
+  | .unit => .unit
 
 def bvarUnShift (shift skip : Nat) : Stx → Stx
   | .bvar n => .bvar $ if n - shift < skip then n else n - shift
@@ -19,6 +20,7 @@ def bvarUnShift (shift skip : Nat) : Stx → Stx
   | .prod a b => .prod (a.bvarUnShift shift skip) (b.bvarUnShift shift skip)
   | .fst expr => .fst (expr.bvarUnShift shift skip)
   | .snd expr => .snd (expr.bvarUnShift shift skip)
+  | .unit => .unit
 
 def replace.bvar (bvarId idx_shift : Nat) (replace : Stx) : Stx :=
   match compare bvarId idx_shift with
@@ -33,8 +35,9 @@ def replace (idx_shift : Nat) (body replace : Stx) : Stx := match body with
   | .prod a b => .prod (a.replace idx_shift replace) (b.replace idx_shift replace)
   | .fst expr => .fst (expr.replace idx_shift replace)
   | .snd expr => .snd (expr.replace idx_shift replace)
+  | .unit => .unit
 
-def β (body repl : Stx) : Stx := (body.replace 0 repl)
+def β (body repl : Stx) : Stx := body.replace 0 repl
 
 end Stx
 

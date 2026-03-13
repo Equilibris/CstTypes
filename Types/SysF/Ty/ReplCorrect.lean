@@ -14,9 +14,9 @@ theorem bvarUnShift_bvarShift {shift skip s} : bvarUnShift shift skip (bvarShift
 
 variable {n k} in
 section
-example : bvarShift k 0 (.id n) = (.id (n + k))                     := by simp [bvarShift]
+example : bvarShift k 0 (.id n) = (.id (n + k))                     := rfl
 example : bvarShift k (.succ n) (.id 0) = (.id 0)                   := by simp [bvarShift]
-example : bvarShift k 0 (.fa (.id 0)) = (.fa $ .id 0)               := by simp [bvarShift]
+example : bvarShift k 0 (.fa (.id 0)) = (.fa $ .id 0)               := rfl
 example : bvarShift k 0 (.fa (.id 1)) = (.fa $ .id (1 + k))         := by simp [bvarShift]
 end
 
@@ -170,3 +170,25 @@ theorem replace_RefSet_general_ge_rev
     cases replace_RefSet_general_ge_rev hlt h
     <;> simp_all
 
+theorem replace_nRefSet_id
+    {repl idx}
+    : {body : Ty} → (hlt : ¬RefSet body idx) → body.replace idx repl = body.bvarUnShift 1 idx
+  | .id _ , h => by
+    simp only [RefSet_id, replace, replace.bvar, Nat.pred_eq_sub_one, bvarUnShift] at h ⊢
+    split
+    <;> rename_i heq
+    <;> simp only [Nat.compare_eq_lt, Nat.compare_eq_eq, Nat.compare_eq_gt] at heq
+    · simp only [id.injEq, left_eq_ite_iff, Nat.not_lt]
+      intro h
+      omega
+    · subst heq
+      grind only
+    · rename_i heq
+      simp only [id.injEq, right_eq_ite_iff]
+      intro h
+      omega
+  | .fa _, h => (Ty.fa.injEq _ _).mpr <| replace_nRefSet_id (by grind)
+  | .fn _ _, h => (Ty.fn.injEq _ _ _ _).mpr ⟨
+      replace_nRefSet_id (by grind),
+      replace_nRefSet_id (by grind),
+    ⟩

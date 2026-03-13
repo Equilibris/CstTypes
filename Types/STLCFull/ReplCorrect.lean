@@ -55,6 +55,7 @@ theorem bvarShift.comb {n k s}
   | .prod _ _ => (Stx.prod.injEq _ _ _ _).mpr ⟨bvarShift.comb, bvarShift.comb⟩
   | .fst _ => (Stx.fst.injEq _ _).mpr bvarShift.comb
   | .snd _ => (Stx.snd.injEq _ _).mpr bvarShift.comb
+  | .unit => rfl
 
 @[simp]
 theorem bvarShift.comb' {n k s}
@@ -87,6 +88,7 @@ theorem bvarShift_RefSet_general {body idx skip shift} (h : RefSet body (idx + s
   | .snd expr => by
     simp only [RefSet_snd, bvarShift] at h ⊢
     exact bvarShift_RefSet_general h
+  | .unit => by cases h
 
 theorem bvarShift_RefSet {body idx shift} (h : RefSet body idx) : RefSet (body.bvarShift shift 0) (idx + shift) :=
   bvarShift_RefSet_general h
@@ -118,6 +120,9 @@ theorem bvarShift_RefSet_general_rev {body idx shift}
   | .snd expr => by
     simp only [bvarShift, RefSet_snd] at h ⊢
     exact bvarShift_RefSet_general_rev skip h
+  | .unit => by
+    exfalso
+    exact h
 
 example {n} : RefSet (.abs .unit (.bvar (n + 1))) n := .abs .bvar
 
@@ -165,6 +170,7 @@ theorem bvarShift_RefSet_general_lt_rev {body idx shift}
   | .snd expr => by
     simp only [bvarShift, RefSet_snd] at h ⊢
     exact bvarShift_RefSet_general_lt_rev skip hlt h
+  | .unit => by cases h
 
 theorem bvarShift_range
     {shift skip n}
@@ -187,6 +193,7 @@ theorem bvarShift_range
   | .snd expr, .snd h => by
     have := bvarShift_range h
     grind
+  | .unit, h => by cases h
 
 theorem replace_RefSet_general_lt_rev
     {repl idx jdx}
@@ -214,6 +221,7 @@ theorem replace_RefSet_general_lt_rev
     <| replace_RefSet_general_lt_rev hlt h
   | .snd expr, .snd h => RefSet_snd.mpr
     <| replace_RefSet_general_lt_rev hlt h
+  | .unit, h => by cases h
 
 theorem replace_RefSet_general_ge_rev
     {repl idx jdx}
@@ -249,6 +257,37 @@ theorem replace_RefSet_general_ge_rev
     simp only [Nat.succ_eq_add_one, RefSet_snd]
     cases replace_RefSet_general_ge_rev hlt h
     <;> simp_all
+  | .unit, h => by cases h
+
+theorem replace_nRefSet_id
+    {repl idx}
+    : {body : Stx} → (hlt : ¬RefSet body idx) → body.replace idx repl = body.bvarUnShift 1 idx
+  | .bvar _ , h => by
+    simp only [RefSet_bvar, replace, replace.bvar, Nat.pred_eq_sub_one, bvarUnShift] at h ⊢
+    split
+    <;> rename_i heq
+    <;> simp only [Nat.compare_eq_lt, Nat.compare_eq_eq, Nat.compare_eq_gt] at heq
+    · simp only [Stx.bvar.injEq, left_eq_ite_iff, Nat.not_lt]
+      intro h
+      omega
+    · subst heq
+      grind
+    · rename_i heq
+      simp only [Stx.bvar.injEq, right_eq_ite_iff]
+      intro h
+      omega
+  | .abs ty _, h => (Stx.abs.injEq _ _ _ _).mpr ⟨rfl, replace_nRefSet_id (by grind)⟩
+  | .app _ _, h => (Stx.app.injEq _ _ _ _).mpr ⟨
+      replace_nRefSet_id (by grind),
+      replace_nRefSet_id (by grind),
+    ⟩
+  | .prod _ _, h => (Stx.prod.injEq _ _ _ _).mpr ⟨
+      replace_nRefSet_id (by grind),
+      replace_nRefSet_id (by grind),
+    ⟩
+  | .fst _, h => (Stx.fst.injEq _ _).mpr <| replace_nRefSet_id (by grind)
+  | .snd _, h => (Stx.snd.injEq _ _).mpr <| replace_nRefSet_id (by grind)
+  | .unit, h => by simp only [replace, bvarUnShift]
 
 end Stx
 

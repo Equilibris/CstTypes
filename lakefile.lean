@@ -6,8 +6,8 @@ package "types" where
   keywords := #["math"]
   leanOptions := #[
     ⟨`pp.unicode.fun, true⟩, -- pretty-prints `fun a ↦ b`
-    ⟨`autoImplicit, false⟩,
-    ⟨`relaxedAutoImplicit, false⟩,
+    ⟨`autoImplicit, true⟩,
+    ⟨`relaxedAutoImplicit, true⟩,
     ⟨`maxSynthPendingDepth, .ofNat 3⟩,
     ⟨`weak.linter.mathlibStandardSet, true⟩,
   ]

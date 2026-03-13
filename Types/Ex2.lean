@@ -1,5 +1,5 @@
 import Types.SysFHOAS.Show
-import Types.SysFHOAS.Denote
+/- import Types.SysFHOAS.Denote -/
 
 namespace SysFPHOAS
 
@@ -15,7 +15,7 @@ def a.t : Ty := .arr
 def a.e : Term a.t :=
   .lam fun x => .tlam fun β => .tapp (.var x) β
 
--- This cant exist because α is not a unit type
+-- b cant exist because A is the function type
 
 -- TODO: C , A₃ must be False, i.e. ∀ α, α
 -- TODO: D , A₄ could be the constant false function,
@@ -53,18 +53,18 @@ def tree.node : Term (.arr (tree X) <| .arr X <| .arr (tree X) (tree X)) :=
             var r |>.tapp β |>.app (.var bot) |>.app (.var main)
           var main |>.app l |>.app (.var c) |>.app r
 
-def prod (A B : rep) : Type' rep :=
-  .all fun s => .arr (.arr (.var A) (.arr (.var B) (.var s))) (.var s)
-
-def prod.fst (A B : rep) : Term' rep2 (.arr (prod A B) (.var A)) :=
-  .lam fun ab =>
-    var ab |>.tapp A |>.app
-      (.lam fun v => .lam fun _ => .var v)
-
-def prod.snd (A B : rep) : Term' rep2 (.arr (prod A B) (.var B)) :=
-  .lam fun ab =>
-    var ab |>.tapp B |>.app
-      (.lam fun _ => .lam fun v => .var v)
+/- def prod (A B : rep) : Type' rep := -/
+/-   .all fun s => .arr (.arr (.var A) (.arr (.var B) (.var s))) (.var s) -/
+/-  -/
+/- def prod.fst (A B : rep) : Term' rep2 (.arr (prod A B) (.var A)) := -/
+/-   .lam fun ab => -/
+/-     var ab |>.tapp A |>.app -/
+/-       (.lam fun v => .lam fun _ => .var v) -/
+/-  -/
+/- def prod.snd (A B : rep) : Term' rep2 (.arr (prod A B) (.var B)) := -/
+/-   .lam fun ab => -/
+/-     var ab |>.tapp B |>.app -/
+/-       (.lam fun _ => .lam fun v => .var v) -/
 
 end Ex2
 

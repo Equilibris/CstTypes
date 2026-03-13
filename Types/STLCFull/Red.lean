@@ -18,3 +18,5 @@ inductive Red : Stx → Stx → Prop
 
 abbrev RedStar := Relation.ReflTransGen Red
 abbrev RedPlus := Relation.TransGen Red
+
+end STLCFull
