@@ -40,15 +40,11 @@ inductive Stx : List ModalType → Ty → Type
 
 namespace Stx
 
+/- set_option pp.proofs true in  -/
 @[simp]
 theorem sizeOf_cast' {A B As Bs} {a : Stx As A} (h : A = B) (h' : As = Bs)  : sizeOf (cast (by rw [h, h']) a) = sizeOf a := by
   subst h
   subst h'
-  rfl
-
-@[simp]
-theorem sizeOf_cast {A B} {a : A} (h : A = B) : sizeOf (cast h a) = sizeOf a := by
-  subst h
   rfl
 
 def gshift Γ {Γ₁ Γ₂} : Stx (Γ ++ Γ₁) t → Stx (Γ ++ (Γ₂ ++ Γ₁)) t
@@ -87,8 +83,8 @@ all_goals simp
 any_goals omega
 all_goals rw [sizeOf_cast']
 any_goals rfl
-any_goals omega
-all_goals simp [dize_app]
+any_goals simp [dize_app]
+all_goals omega
 
 /- def parSubst.noopL : {Γ : _} → HList (Stx Γ) (Γ.map ModalType.out) -/
 /-   | [] => .nil -/
