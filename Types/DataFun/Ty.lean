@@ -66,31 +66,5 @@ def FTy.toTy : FTy → Ty
   | .pow a    => .pow a
   | .disc a    => .disc a.toTy
 
-inductive ModalType where
-  | disc (t : Ty)
-  | mono (t : Ty)
-
-namespace ModalType
-
-def out : ModalType → Ty | .disc v | .mono v => v
-
-@[grind]
-inductive IsDisc : ModalType → Prop
-  | disc : IsDisc (.disc e)
-
-instance : DecidablePred IsDisc
-  | .disc _ => .isTrue .disc
-  | .mono _ => .isFalse (by grind)
-
-@[grind]
-inductive IsMono : ModalType → Prop
-  | mono : IsMono (.mono e)
-
-instance : DecidablePred IsMono
-  | .disc _ => .isFalse (by grind)
-  | .mono _ => .isTrue .mono
-
-end ModalType
-
 end DF
 

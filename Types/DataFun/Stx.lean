@@ -3,92 +3,71 @@ import Types.DataFun.Ty
 
 namespace DF
 
-def dize : List ModalType → List ModalType :=
-  List.filter ModalType.IsDisc
+inductive Stx : (Γm Γd : List Ty) → Ty → Type
+  | mvar : List.MemT v Γm → Stx Γm Γd v
+  | dvar : List.MemT v Γd → Stx Γm Γd v
 
-theorem dize_app {A B : List ModalType} : dize (A ++ B) = dize A ++ dize B := by
-  simp [dize]
+  | unit : Stx Γm Γd .unit
+  | prod : Stx Γm Γd A → Stx Γm Γd B → Stx Γm Γd (.prod A B)
+  | fst : Stx Γm Γd (.prod A B) → Stx Γm Γd A
+  | snd : Stx Γm Γd (.prod A B) → Stx Γm Γd B
 
-inductive Stx : List ModalType → Ty → Type
-  | var : List.MemT v Γ → Stx Γ v.out
-
-  | unit : Stx Γ .unit
-  | prod : Stx Γ A → Stx Γ B → Stx Γ (.prod A B)
-  | fst : Stx Γ (.prod A B) → Stx Γ A
-  | snd : Stx Γ (.prod A B) → Stx Γ B
-
-  | inl : Stx Γ A → Stx Γ (.cop A B)
-  | inr : Stx Γ B → Stx Γ (.cop A B)
+  | inl : Stx Γm Γd A → Stx Γm Γd (.cop A B)
+  | inr : Stx Γm Γd B → Stx Γm Γd (.cop A B)
   | case
-      : Stx Γ (.cop A B)
-      → Stx (.mono A :: Γ) C
-      → Stx (.mono B :: Γ) C
-      → Stx Γ C
+      : Stx Γm Γd (.cop A B)
+      → Stx (A :: Γm) Γd C
+      → Stx (B :: Γm) Γd C
+      → Stx Γm Γd C
 
-  | lam : Stx (.mono A :: Γ) B → Stx Γ (.fn A B)
-  | app : Stx Γ (.fn A B) → Stx Γ A → Stx Γ B
+  | lam : Stx (A :: Γm) Γd B → Stx Γm Γd (.fn A B)
+  | app : Stx Γm Γd (.fn A B) → Stx Γm Γd A → Stx Γm Γd B
 
-  | sing : Stx (dize Γ) T.toTy → Stx Γ (.pow T)
-  | bot : L.Lattice → Stx Γ L
-  | join : L.Lattice → Stx Γ L → Stx Γ L → Stx Γ L
-  | forE : L.Lattice → Stx Γ (.pow T) → Stx (.disc T.toTy :: Γ) L → Stx Γ L
+  | sing : Stx [] Γd T.toTy → Stx Γm Γd (.pow T)
+  | bot : L.Lattice → Stx Γm Γd  L
+  | join : L.Lattice → Stx Γm Γd L → Stx Γm Γd L → Stx Γm Γd L
+  | forE : L.Lattice → Stx Γm Γd (.pow T) → Stx Γm (T.toTy :: Γd) L → Stx Γm Γd L
 
-  | discI : Stx (dize Γ) A → Stx Γ (.disc A)
-  | discE : Stx Γ (.disc A) → Stx (.disc A :: Γ) C → Stx Γ C
+  | discI : Stx [] Γd A → Stx Γm Γd (.disc A)
+  | discE : Stx Γm Γd (.disc A) → Stx Γm (A :: Γd) C → Stx Γm Γd C
 
-  | fix : L.Lattice → Stx (.mono L :: dize Γ) L → Stx Γ L
+  | fix : L.Lattice → Stx [L] Γd L → Stx Γm Γd L
 
 namespace Stx
 
-/- set_option pp.proofs true in  -/
-@[simp]
-theorem sizeOf_cast' {A B As Bs} {a : Stx As A} (h : A = B) (h' : As = Bs)  : sizeOf (cast (by rw [h, h']) a) = sizeOf a := by
-  subst h
-  subst h'
-  rfl
-
-def gshift Γ {Γ₁ Γ₂} : Stx (Γ ++ Γ₁) t → Stx (Γ ++ (Γ₂ ++ Γ₁)) t
-  | .var h => .var h.sandwitch_shift
+def gwkn Γm Γd {Γ₁m Γ₂m Γ₁d Γ₂d} 
+    : Stx (Γm ++ Γ₁m) (Γd ++ Γ₁d) t
+    → Stx (Γm ++ (Γ₂m ++ Γ₁m)) (Γd ++ (Γ₂d ++ Γ₁d)) t
+  | .mvar h => .mvar h.sandwitch_shift
+  | .dvar h => .dvar h.sandwitch_shift
 
   | .unit => .unit
-  | .prod a b => .prod (gshift _ a) (gshift _ b)
-  | .fst a => .fst (gshift _ a)
-  | .snd a => .snd (gshift _ a)
+  | .prod a b => .prod (gwkn _ _ a) (gwkn _ _ b)
+  | .fst a => .fst (gwkn _ _ a)
+  | .snd a => .snd (gwkn _ _ a)
 
-  | .inl a => .inl (gshift _ a)
-  | .inr a => .inr (gshift _ a)
-  | .case a b c => .case (gshift _ a) (gshift (_ :: _) b) (gshift (_ :: _) c)
+  | .inl a => .inl (gwkn _ _ a)
+  | .inr a => .inr (gwkn _ _ a)
+  | .case a b c => .case (gwkn _ _ a) (gwkn (_ :: _) _ b) (gwkn (_ :: _) _ c)
 
-  | .lam a => .lam (gshift (_ :: _) a)
-  | .app a b => .app (gshift _ a) (gshift _ b)
+  | .lam a => .lam (gwkn (_ :: _) _ a)
+  | .app a b => .app (gwkn _ _ a) (gwkn _ _ b)
 
   | .sing a =>
-    have := gshift _ (Γ₂ := dize Γ₂) <| cast (by rw [dize_app]) a
-    .sing <| cast (by simp [←dize_app]) this
+    .sing <| gwkn [] _ (Γ₂m := []) (Γ₂d := Γ₂d) a
   | .bot h => .bot h
-  | .join h a b => .join h (gshift _ a) (gshift _ b)
-  | .forE h a b => .forE h (gshift _ a) (gshift (_ :: _) b)
+  | .join h a b => .join h (gwkn _ _ a) (gwkn _ _ b)
+  | .forE h a b => .forE h (gwkn _ _ a) (gwkn _ (_ :: _) b)
 
   | .discI a =>
-    have := gshift _ (Γ₂ := dize Γ₂) <| cast (by rw [dize_app]) a
-    .discI <| cast (by simp [←dize_app]) this
-  | .discE a b => .discE (gshift _ a) (gshift (_ :: _) b)
-
+    .discI <| gwkn [] _ (Γ₂m := []) (Γ₂d := Γ₂d) a
+  | .discE a b => .discE (gwkn _ _ a) (gwkn _ (_ :: _) b)
   | .fix h a =>
-    have := gshift (_ :: _) (Γ₂ := dize Γ₂) <| cast (by rw [dize_app]; rfl) a
-    .fix h <| cast (by simp [←dize_app]) this
-termination_by a => sizeOf a
-decreasing_by
-all_goals simp
-any_goals omega
-all_goals rw [sizeOf_cast']
-any_goals rfl
-any_goals simp [dize_app]
-all_goals omega
+    .fix h <| gwkn [t] _ (Γ₂m := []) (Γ₂d := Γ₂d) a
 
-/- def parSubst.noopL : {Γ : _} → HList (Stx Γ) (Γ.map ModalType.out) -/
-/-   | [] => .nil -/
-/-   | _ :: _ => .cons (.var .hd) <| noopL.map <| shift [_] -/
+def wkn {Γ₁m Γ₂m Γ₁d Γ₂d} 
+    : Stx Γ₁m Γ₁d t → Stx (Γ₂m ++ Γ₁m) (Γ₂d ++ Γ₁d) t :=
+  gwkn [] []
 
 end Stx
 
