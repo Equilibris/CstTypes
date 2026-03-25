@@ -19,45 +19,45 @@ inductive Ty where
   | disc : Ty → Ty
 
 @[grind]
-inductive FTy.Lattice : FTy → Prop
+class inductive FTy.Lattice : FTy → Type
   | unit : Lattice .unit
   | prod : a.Lattice → b.Lattice → Lattice (.prod a b)
   | pow : a.Lattice → Lattice (.pow a)
 
 @[grind]
-inductive Ty.Lattice : Ty → Prop
+class inductive Ty.Lattice : Ty → Type
   | unit : Lattice .unit
   | prod : a.Lattice → b.Lattice → Lattice (.prod a b)
   | pow : a.Lattice → Lattice (.pow a)
 
-instance FTy.lDec : {a : FTy} → Decidable a.Lattice
-  | .unit => .isTrue .unit
-  | .prod a b =>
-    match a.lDec, b.lDec with
-    | .isTrue a, .isTrue b => .isTrue <| .prod a b
-    | .isFalse a, _
-    | _, .isFalse _ => .isFalse <| by grind
-  | .pow a =>
-    match a.lDec with
-    | .isTrue a => .isTrue <| .pow a
-    | .isFalse a => .isFalse <| by grind
-  | .cop _ _
-  | .disc _ => .isFalse (by grind)
-
-instance Ty.lDec : {a : Ty} → Decidable a.Lattice
-  | .unit => .isTrue .unit
-  | .prod a b =>
-    match a.lDec, b.lDec with
-    | .isTrue a, .isTrue b => .isTrue <| .prod a b
-    | .isFalse a, _
-    | _, .isFalse _ => .isFalse <| by grind
-  | .pow a =>
-    match a.lDec with
-    | .isTrue a => .isTrue <| .pow a
-    | .isFalse a => .isFalse <| by grind
-  | .fn _ _
-  | .cop _ _
-  | .disc _ => .isFalse (by grind)
+/- instance FTy.lDec : {a : FTy} → Decidable a.Lattice -/
+/-   | .unit => .isTrue .unit -/
+/-   | .prod a b => -/
+/-     match a.lDec, b.lDec with -/
+/-     | .isTrue a, .isTrue b => .isTrue <| .prod a b -/
+/-     | .isFalse a, _ -/
+/-     | _, .isFalse _ => .isFalse <| by grind -/
+/-   | .pow a => -/
+/-     match a.lDec with -/
+/-     | .isTrue a => .isTrue <| .pow a -/
+/-     | .isFalse a => .isFalse <| by grind -/
+/-   | .cop _ _ -/
+/-   | .disc _ => .isFalse (by grind) -/
+/-  -/
+/- instance Ty.lDec : {a : Ty} → Decidable a.Lattice -/
+/-   | .unit => .isTrue .unit -/
+/-   | .prod a b => -/
+/-     match a.lDec, b.lDec with -/
+/-     | .isTrue a, .isTrue b => .isTrue <| .prod a b -/
+/-     | .isFalse a, _ -/
+/-     | _, .isFalse _ => .isFalse <| by grind -/
+/-   | .pow a => -/
+/-     match a.lDec with -/
+/-     | .isTrue a => .isTrue <| .pow a -/
+/-     | .isFalse a => .isFalse <| by grind -/
+/-   | .fn _ _ -/
+/-   | .cop _ _ -/
+/-   | .disc _ => .isFalse (by grind) -/
 
 def FTy.toTy : FTy → Ty
   | .unit     => .unit

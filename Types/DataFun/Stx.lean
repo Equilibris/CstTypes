@@ -24,18 +24,18 @@ inductive Stx : (Γm Γd : List Ty) → Ty → Type
   | app : Stx Γm Γd (.fn A B) → Stx Γm Γd A → Stx Γm Γd B
 
   | sing : Stx [] Γd T.toTy → Stx Γm Γd (.pow T)
-  | bot : L.Lattice → Stx Γm Γd  L
-  | join : L.Lattice → Stx Γm Γd L → Stx Γm Γd L → Stx Γm Γd L
-  | forE : L.Lattice → Stx Γm Γd (.pow T) → Stx Γm (T.toTy :: Γd) L → Stx Γm Γd L
+  | bot {L : Ty} [lat : L.Lattice] : Stx Γm Γd L
+  | join {L : Ty} [lat : L.Lattice] : Stx Γm Γd L → Stx Γm Γd L → Stx Γm Γd L
+  | forE {L : Ty} [lat : L.Lattice] : Stx Γm Γd (.pow T) → Stx Γm (T.toTy :: Γd) L → Stx Γm Γd L
 
   | discI : Stx [] Γd A → Stx Γm Γd (.disc A)
   | discE : Stx Γm Γd (.disc A) → Stx Γm (A :: Γd) C → Stx Γm Γd C
 
-  | fix : L.Lattice → Stx [L] Γd L → Stx Γm Γd L
+  | fix {L : Ty} [lat : L.Lattice] : Stx [L] Γd L → Stx Γm Γd L
 
 namespace Stx
 
-def gwkn Γm Γd {Γ₁m Γ₂m Γ₁d Γ₂d} 
+def gwkn Γm Γd {Γ₁m Γ₂m Γ₁d Γ₂d}
     : Stx (Γm ++ Γ₁m) (Γd ++ Γ₁d) t
     → Stx (Γm ++ (Γ₂m ++ Γ₁m)) (Γd ++ (Γ₂d ++ Γ₁d)) t
   | .mvar h => .mvar h.sandwitch_shift
@@ -55,17 +55,17 @@ def gwkn Γm Γd {Γ₁m Γ₂m Γ₁d Γ₂d}
 
   | .sing a =>
     .sing <| gwkn [] _ (Γ₂m := []) (Γ₂d := Γ₂d) a
-  | .bot h => .bot h
-  | .join h a b => .join h (gwkn _ _ a) (gwkn _ _ b)
-  | .forE h a b => .forE h (gwkn _ _ a) (gwkn _ (_ :: _) b)
+  | .bot (lat := h) => .bot
+  | .join (lat := h) a b => .join (gwkn _ _ a) (gwkn _ _ b)
+  | .forE (lat := h) a b => .forE (gwkn _ _ a) (gwkn _ (_ :: _) b)
 
   | .discI a =>
     .discI <| gwkn [] _ (Γ₂m := []) (Γ₂d := Γ₂d) a
   | .discE a b => .discE (gwkn _ _ a) (gwkn _ (_ :: _) b)
-  | .fix h a =>
-    .fix h <| gwkn [t] _ (Γ₂m := []) (Γ₂d := Γ₂d) a
+  | .fix (lat := h) a =>
+    .fix <| gwkn [t] _ (Γ₂m := []) (Γ₂d := Γ₂d) a
 
-def wkn {Γ₁m Γ₂m Γ₁d Γ₂d} 
+def wkn {Γ₁m Γ₂m Γ₁d Γ₂d}
     : Stx Γ₁m Γ₁d t → Stx (Γ₂m ++ Γ₁m) (Γ₂d ++ Γ₁d) t :=
   gwkn [] []
 
